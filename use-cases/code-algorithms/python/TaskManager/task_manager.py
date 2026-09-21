@@ -10,7 +10,7 @@ class TaskManager:
         self.storage = TaskStorage(storage_path)
 
     def create_task(self, title, description="", priority_value=2,
-                   due_date_str=None, tags=None):
+                    due_date_str=None, tags=None):
         priority = TaskPriority(priority_value)
         due_date = None
         if due_date_str:
@@ -116,3 +116,19 @@ class TaskManager:
             "completed_last_week": completed_recently
         }
 
+    def check_and_update_abandoned_tasks(self):
+        """Automatically mark tasks as abandoned if they are overdue by > 7 days and not high priority/urgent."""
+        tasks = self.storage.get_all_tasks()
+        now = datetime.now()
+        updated = False
+        
+        for task in tasks:
+            if task.due_date and task.status not in [TaskStatus.DONE, TaskStatus.ABANDONED]:
+                days_overdue = (now - task.due_date).days
+                
+                if days_overdue > 7 and task.priority not in [TaskPriority.HIGH, TaskPriority.URGENT]:
+                    task.status = TaskStatus.ABANDONED
+                    updated = True
+                    
+        if updated:
+            self.storage.save()

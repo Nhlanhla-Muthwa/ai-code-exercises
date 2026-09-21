@@ -1,0 +1,141 @@
+Understanding Project Structure(my findings)
+
+Examine the directory structure and files without diving deep into code:
+The main folder is called python and there is subfolder called TaskManger and that folder contains projects files and test folder that have test files.
+
+Look at configuration files:
+Python project does not contain configuration files
+
+Form initial understanding:
+Write down your best guess about how the codebase is organized
+it organize in business logic, library code and data
+
+List the technologies and frameworks you think it uses
+python is use as laguage
+unit testing is used
+
+Identify what you think are the main components
+cli.py, models.py, task_list_merge.py,
+task_manage.py
+task_parser.py
+task_pririty.py and task.json
+
+Understanding Project Structure and Technology Stack(Ai prompt)
+Project Structure (TaskManager)The project follows a standard modular Python layout located under use-cases/code-algorithms/python/TaskManager:cli.py: Command-line interface entry point that handles formatting and user interaction (using argparse and datetime handling).   task_manager.py: The core application logic/controller for managing tasks.models.py: Data structures, enums, or classes representing tasks, status (TaskStatus), and priorities (TaskPriority).storage.py: Likely handles persistence (saving/loading tasks to a file or database).task_parser.py & task_priority.py: Modules dedicated to parsing task inputs and handling priority rules.task_list_merge.py: Utility for merging multiple task lists or resolving conflicts.tests/: Contains unit testing modules (test_task_parser.py, test_task_priority.py) to validate core functionalities.README.md: Project documentation.Technology StackLanguage: Python 3 (indicated by the .py files and status bar interpreter selection).Standard Libraries Used:argparse for command-line argument parsing.   datetime for managing task due dates.   Testing Framework: Standard Python testing structures (likely unittest or pytest).IDE: Visual Studio Code with Python extensions.
+
+AI response to my finding
+
+Your breakdown is spot on! You've successfully mapped out the core architectural patterns and modular design of the TaskManager project just by looking at the file tree.
+
+Here is a review and slight refinement of your findings:
+
+1. Project Structure & Organization
+Layout: You correctly identified the hierarchy (python/TaskManager/ with a dedicated tests/ subfolder).
+
+Separation of Concerns: Your guess that it is organized into business logic, data, and interface components is completely accurate. It follows a clean modular approach where each file has a single, well-defined responsibility.
+
+2. Technologies & Frameworks
+Language: Python (utilized via standard script files and standard libraries like argparse and datetime).
+
+Testing: Python's built-in unit testing structure (as seen in the tests/ directory with test_task_parser.py and test_task_priority.py).
+
+3. Main Components Breakdown
+Your list of main components captures the entire architecture:
+
+cli.py: The entry point for command-line interactions and formatting output.
+
+task_manager.py: The core controller managing task operations.
+
+models.py: Defines data structures, states, and enums (TaskStatus, TaskPriority).
+
+task_parser.py & task_priority.py: Handle input parsing and priority-specific logic.
+
+task_list_merge.py: Manages combining or reconciling task lists.
+
+storage.py / task.json: Handles data persistence (saving and loading tasks to/from disk).
+
+Document your findings:
+
+1. Misconceptions Identified
+Configuration Files: Initially noted that the project completely lacks configuration files. Correction: While it lacks heavy framework configuration files (like package.json or settings.py), version control configurations such as .gitignore are present, and runtime configuration/parameters are dynamically handled via the CLI command structure.
+
+2. Important Entry Points & Architectural Patterns
+Primary Entry Point (cli.py): Serves as the user-facing command-line interface, leveraging argparse to handle execution arguments and formatting task statuses/priorities for readable output.
+
+Separation of Concerns / Modular Architecture: The codebase cleanly separates responsibilities across dedicated modules—dividing the interface layer (cli.py), business logic layer (task_manager.py, parsers, and merging logic), data layer (models.py), and persistence layer (storage.py).
+
+Test-Driven / Isolated Test Pattern: Utilizes a dedicated tests/ subdirectory to separate validation logic from production source code.
+
+3. Key Components and Their Responsibilities
+cli.py: Manages command-line argument processing, user inputs, and output formatting.
+
+task_manager.py: Acts as the core application controller or service layer executing main task operations.
+
+models.py: Defines the foundational data models, classes, and states (TaskStatus, TaskPriority).
+
+task_parser.py: Parses incoming raw text or arguments into structured task objects.
+
+task_priority.py: Enforces and evaluates task priority sorting and mapping rules.
+
+task_list_merge.py: Handles algorithms or logic for combining or reconciling multiple task lists.
+
+storage.py / task.json: Handles reading, writing, and persisting task data to disk.
+
+Exercise Part 4: Practical Application
+Identify which files you would need to modify:
+it is task_priority.py
+Outline the changes you would make to implement this rule:
+
+Submission
+
+1. Initial vs. Final Understanding of the Task Manager Codebase
+
+Initial Understanding
+
+At the outset, examining the project layout revealed a clean, modular Python structure (python/TaskManager/) featuring a dedicated tests/ directory and core script files. Without inspecting deep internal code, the initial assessment was that the project organized its architecture into clear boundaries separating interface handling, business logic, and data storage. However, assumptions regarding configuration files overlooked how version control configurations (.gitignore) and runtime argument parsers (argparse) manage project settings.
+
+Final Understanding
+
+Following a granular code review of models.py, task_manager.py, and the CLI structure, the final understanding reflects a robust, production-ready modular architecture:
+
+Separation of Concerns: The application strictly decouples data definitions (models.py), storage/persistence operations (storage.py), service-layer execution (task_manager.py), and presentation (cli.py).
+
+Extensibility: The codebase leverages Python enumerations (TaskStatus, TaskPriority) and structured classes, making it straightforward to introduce new domain states and algorithms without refactoring core layers.
+
+2. Valuable Insights Gained from Each Prompt
+
+Mapping Structure & Technology Stack: Recognizing that modular organization reduces cognitive load when exploring a new repository for the first time.
+
+Identifying Misconceptions: Learning to look beyond traditional configuration files (package.json, settings.py) to see how CLI arguments and hidden files (.gitignore) define environment boundaries.
+
+Analyzing Domain Models & Business Logic: Gaining appreciation for how data models encapsulate state validation and lifecycle rules (e.g., is_overdue()).
+
+Planning Feature Implementation: Discovering the importance of mapping change propagation across multiple files (models.py, task_manager.py, cli.py, and test suites) before writing code.
+
+Refactoring and Extending Code: Mastering the safe integration of automated background business logic (such as auto-abandoning overdue tasks) into service classes.
+
+3. Approach to Implementing the New Business Rule
+
+Implementing the rule—“Tasks that are overdue for more than 7 days should be automatically marked as abandoned unless they are marked as high priority”—followed a structured, incremental workflow:
+
+Model Extension: Updated models.py by adding an ABANDONED = "abandoned" state to the TaskStatus enum.
+
+Business Logic Integration: Created the check_and_update_abandoned_tasks method within task_manager.py to evaluate task due dates against current timestamps while safeguarding high-priority/urgent tasks.
+
+Persistence Synchronization: Ensured state updates trigger self.storage.save() to maintain data integrity across sessions.
+
+Validation: Outlined CLI interaction points and unit tests to verify correct execution.
+
+4. Strategies for Approaching Unfamiliar Code in the Future
+
+When tackling unfamiliar codebases going forward, the following strategy ensures efficiency and accuracy:
+
+Top-Down Exploration: Start with the directory tree and entry points (cli.py) before diving into implementation details or algorithms.
+
+Identify Core Boundaries: Locate where data models, storage mechanisms, and business controllers live to understand data flow.
+
+Trace a Single Request/Command: Follow a single user action (e.g., creating or listing a task) through the entire stack to see how components interact.
+
+Isolate Change Impact: Before implementing new features, map out every dependency affected (enums, storage handlers, UI formatters) to prevent regressions.
+
+
