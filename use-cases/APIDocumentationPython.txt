@@ -1,0 +1,506 @@
+Prompt 1: Endpoint Documentation Generation
+
+Please create comprehensive documentation for this API endpoint:
+
+Endpoint: [HTTP method] [endpoint path]
+
+Implementation code:
+@app.route('/api/users/register', methods=['POST'])
+def register_user():
+    """Register a new user"""
+    data = request.get_json()
+
+    # Validate required fields
+    required_fields = ['username', 'email', 'password']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({
+                'error': 'Missing required field',
+                'message': f'{field} is required'
+            }), 400
+
+    # Check if username or email already exists
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({
+            'error': 'Username taken',
+            'message': 'Username is already in use'
+        }), 409
+
+    if User.query.filter_by(email=data['email']).first():
+        return jsonify({
+            'error': 'Email exists',
+            'message': 'An account with this email already exists'
+        }), 409
+
+    # Validate email format
+    if not re.match(r"^[^@]+@[^@]+\.[^@]+$", data['email']):
+        return jsonify({
+            'error': 'Invalid email',
+            'message': 'Please provide a valid email address'
+        }), 400
+
+    # Validate password strength
+    if len(data['password']) < 8:
+        return jsonify({
+            'error': 'Weak password',
+            'message': 'Password must be at least 8 characters long'
+        }), 400
+
+    # Create new user
+    try:
+        # Hash password
+        password_hash = generate_password_hash(data['password'])
+
+        # Create user object
+        new_user = User(
+            username=data['username'],
+            email=data['email'].lower(),
+            password_hash=password_hash,
+            created_at=datetime.utcnow(),
+            role='user'
+        )
+
+        # Add user to database
+        db.session.add(new_user)
+        db.session.commit()
+
+        # Generate confirmation token
+        confirmation_token = generate_confirmation_token(new_user.id)
+
+        # Send confirmation email
+        try:
+            send_confirmation_email(new_user.email, confirmation_token)
+        except Exception as e:
+            # Log email error but continue
+            app.logger.error(f"Failed to send confirmation email: {str(e)}")
+
+        # Create response without password
+        user_data = {
+            'id': new_user.id,
+            'username': new_user.username,
+            'email': new_user.email,
+            'created_at': new_user.created_at.isoformat(),
+            'role': new_user.role
+        }
+
+        return jsonify({
+            'message': 'User registered successfully',
+            'user': user_data
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error registering user: {str(e)}")
+        return jsonify({
+            'error': 'Server error',
+            'message': 'Failed to register user'
+        }), 500
+
+Please include:
+1. A clear description of the endpoint's purpose
+2. Request parameters (path, query, body) with types and descriptions
+3. Response format with status codes and examples
+4. Authentication requirements
+5. Potential error responses with codes and messages
+6. At least 2 example requests with their responses
+7. Any rate limiting or special considerations
+
+AI response:
+## Register User Endpoint Documentation
+
+### Overview
+
+* **HTTP Method:** `POST`
+* **Endpoint Path:** `/api/users/register`
+* **Purpose:** Registers a new user account, performs validation checks on credentials, securely hashes the password, creates the database record, and triggers a verification email sequence.
+* **Authentication:** None required (Publicly accessible endpoint).
+
+---
+
+### Request Details
+
+#### Request Headers
+
+| Header | Type | Description |
+| --- | --- | --- |
+| `Content-Type` | string | Must be set to `application/json`. |
+
+#### Request Body (JSON)
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `username` | string | Yes | The unique username chosen by the user. |
+| `email` | string | Yes | A valid, unique email address for the user. |
+| `password` | string | Yes | Plaintext password (must be at least 8 characters long). |
+
+---
+
+### Response Format & Status Codes
+
+#### Success Response (`201 Created`)
+
+Returned when the user is successfully created and registered in the database.
+
+```json
+{
+  "message": "User registered successfully",
+  "user": {
+    "id": 1,
+    "username": "johndoe",
+    "email": "johndoe@example.com",
+    "created_at": "2026-06-24T12:00:00Z",
+    "role": "user"
+  }
+}
+
+```
+
+---
+
+### Error Responses
+
+| Status Code | Error Type | Message / Description |
+| --- | --- | --- |
+| `400 Bad Request` | `Missing required field` | Triggered if `username`, `email`, or `password` is absent from the body. |
+| `400 Bad Request` | `Invalid email` | Triggered if the email string does not pass basic regex validation. |
+| `400 Bad Request` | `Weak password` | Triggered if the password length is less than 8 characters. |
+| `409 Conflict` | `Username taken` | Triggered if the requested username already exists in the database. |
+| `409 Conflict` | `Email exists` | Triggered if an account with the specified email already exists. |
+| `500 Internal Server Error` | `Server error` | Triggered by unexpected database transaction or system failures. |
+
+---
+
+### Examples
+
+#### Example 1: Successful Registration (`201 Created`)
+
+* **Request:**
+```http
+POST /api/users/register
+Content-Type: application/json
+
+{
+  "username": "janedoe",
+  "email": "janedoe@example.com",
+  "password": "SecurePassword123"
+}
+
+```
+
+
+* **Response:**
+```json
+{
+  "message": "User registered successfully",
+  "user": {
+    "id": 42,
+    "username": "janedoe",
+    "email": "janedoe@example.com",
+    "created_at": "2026-09-23T10:30:00.000000",
+    "role": "user"
+  }
+}
+
+```
+
+
+
+#### Example 2: Validation Error - Weak Password (`400 Bad Request`)
+
+* **Request:**
+```http
+POST /api/users/register
+Content-Type: application/json
+
+{
+  "username": "janedoe",
+  "email": "janedoe@example.com",
+  "password": "short"
+}
+
+```
+
+
+* **Response:**
+```json
+{
+  "error": "Weak password",
+  "message": "Password must be at least 8 characters long"
+}
+
+```
+
+
+
+---
+
+### Special Considerations
+
+* **Email Normalization:** Email addresses are automatically converted to lowercase before database persistence.
+* **Asynchronous Email Dispatches:** A confirmation token and email are generated post-creation. If the email delivery server fails, the error is securely logged on the backend, and registration completion remains uninterrupted for the user.
+
+Prompt 2: API Reference Conversion
+Please convert this API information into a structured [Swagger/OpenAPI/API Blueprint/Markdown] document:
+
+API details:
+[Paste API information, can be informal description]
+
+I need the documentation to include:
+1. Endpoint definitions with paths and methods
+2. Request parameters and body schemas
+3. Response schemas with status codes
+4. Example requests and responses
+5. Error handling information
+
+Format the output as a complete, valid [Swagger/OpenAPI/etc.] document.
+
+AI response:
+openapi: 3.0.3
+info:
+  title: User Management API
+  description: API documentation for user registration and account creation.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api
+    description: Local development server
+paths:
+  /users/register:
+    post:
+      summary: Register a new user
+      description: Creates a new user account, validates input data, hashes the password, and sends a confirmation email.
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                  example: johndoe
+                  description: The unique username chosen by the user.
+                email:
+                  type: string
+                  format: email
+                  example: johndoe@example.com
+                  description: A valid, unique email address.
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: SecurePassword123
+                  description: User password (must be at least 8 characters long).
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User registered successfully
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      username:
+                        type: string
+                        example: johndoe
+                      email:
+                        type: string
+                        example: johndoe@example.com
+                      created_at:
+                        type: string
+                        format: date-time
+                        example: '2026-09-23T10:30:00.000000'
+                      role:
+                        type: string
+                        example: user
+        '400':
+          description: Bad Request - Missing required fields, invalid email format, or weak password.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Weak password
+                  message:
+                    type: string
+                    example: Password must be at least 8 characters long
+        '409':
+          description: Conflict - Username or email already exists in the system.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Username taken
+                  message:
+                    type: string
+                    example: Username is already in use
+        '500':
+          description: Internal Server Error - Failed to register user due to server or database issues.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Server error
+                  message:
+                    type: string
+                    example: Failed to register user
+
+Prompt 3: API Usage Guide Creation
+Please create a developer guide for using this API endpoint. The guide should explain how to:
+
+1. Authenticate with the API
+2. Properly format requests
+3. Handle and interpret responses
+4. Deal with common errors
+5. Include example code in [language] for making requests
+
+API information:
+[Paste endpoint documentation]
+
+Target audience: [Describe experience level and background of users]
+Tone: [Friendly/formal/technical/etc.]
+
+AI Response:
+# Developer Guide: User Registration API
+
+Welcome to the team! If you're looking to get users signed up and into our ecosystem, you're in the right place. This guide will walk you through everything you need to know to successfully integrate with our user registration endpoint. 
+
+Whether you're building a sleek frontend interface or testing backend workflows, we'll keep things clear, simple, and practical. Let's dive in!
+
+---
+
+## 1. Authentication
+
+The good news? **No authentication is required** to register a new user account! 
+
+Because this endpoint (`POST /api/users/register`) is the entry point for brand-new visitors, it is completely public. You don't need to pass any API keys, Bearer tokens, or session cookies in your headers to make this request work. 
+
+---
+
+## 2. Properly Formatting Requests
+
+To make sure our server accepts your data, your request needs to follow a few specific rules:
+
+* **HTTP Method:** `POST`
+* **Endpoint URL:** `http://localhost:5000/api/users/register` (update the base URL depending on your environment).
+* **Headers:** You must include a `Content-Type` header set to `application/json`.
+* **Request Body:** Must be a valid JSON object containing three required fields:
+  * `username` (string): The unique name the user wants to go by.
+  * `email` (string): A valid email address (we'll automatically convert this to lowercase for you!).
+  * `password` (string): A secure password that **must be at least 8 characters long**.
+
+---
+
+## 3. Handling and Interpreting Responses
+
+When things go right, our API will reward your request with a status code of **`201 Created`**. 
+
+Here is what a successful response looks like:
+
+```json
+{
+  "message": "User registered successfully",
+  "user": {
+    "id": 42,
+    "username": "janedoe",
+    "email": "janedoe@example.com",
+    "created_at": "2026-09-23T10:30:00.000000",
+    "role": "user"
+  }
+}
+```
+
+* **`message`**: A friendly confirmation string letting you know the registration worked.
+* **`user`**: An object containing the newly created user's profile info (notice we safely omit the password hash!). You can use the `id` field to establish session state or redirect your user.
+
+---
+
+## 4. Dealing with Common Errors
+
+Even the best-laid plans encounter typos or duplicate entries. When something goes wrong, our API responds with clear error codes and descriptive messages so you know exactly how to fix it.
+
+| Status Code | Error Type | Why It Happens | How to Fix It |
+| :--- | :--- | :--- | :--- |
+| **400 Bad Request** | `Missing required field` | You forgot to include `username`, `email`, or `password`. | Double-check your payload to ensure all three keys are present. |
+| **400 Bad Request** | `Invalid email` | The email address format is missing an `@` symbol or domain. | Validate user input on the frontend to match a standard email format. |
+| **400 Bad Request** | `Weak password` | The password provided is shorter than 8 characters. | Prompt your user to choose a longer, more secure password. |
+| **409 Conflict** | `Username taken` or `Email exists` | Someone else is already using that username or email address. | Let the user know the credential is taken and invite them to pick another or log in. |
+| **500 Internal Server Error** | `Server error` | Something unexpected broke on our end or during database writes. | Log the error, retry after a moment, or reach out to backend support. |
+
+Example error response body:
+```json
+{
+  "error": "Weak password",
+  "message": "Password must be at least 8 characters long"
+}
+```
+
+---
+
+## 5. Example Code (Python)
+
+Here is a quick, ready-to-run snippet using the popular `requests` library to show you how to register a user programmatically in Python:
+
+```python
+import requests
+import json
+
+# Define the API endpoint
+url = "http://localhost:5000/api/users/register"
+
+# Set up the required headers
+headers = {
+    "Content-Type": "application/json"
+}
+
+# Construct the payload
+payload = {
+    "username": "codeninja",
+    "email": "ninja@example.com",
+    "password": "SuperSecretPassword123"
+}
+
+try:
+    # Make the POST request
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+
+    # Check if registration was successful
+    if response.status_code == 201:
+        data = response.json()
+        print("Success! User created:")
+        print(f"User ID: {data['user']['id']}")
+        print(f"Username: {data['user']['username']}")
+    else:
+        # Handle known API errors gracefully
+        error_data = response.json()
+        print(f"Registration failed [{response.status_code}] - {error_data.get('error')}: {error_data.get('message')}")
+
+except requests.exceptions.RequestException as e:
+    print(f"An error occurred while connecting to the server: {e}")
+```
+
+---
+
+## Wrapping Up
+You're all set to start integrating! If you run into any edge cases or have questions about error handling, feel free to drop a message in our developer chat channel. Happy coding!
+
