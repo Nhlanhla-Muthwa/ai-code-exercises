@@ -1,0 +1,340 @@
+
+Exercise: Error Diagnosis Challenge
+
+Tracing Error Messages and Stack Traces
+
+Traceback (most recent call last):
+  File "/home/user/projects/inventory/stock_manager.py", line 25, in <module>
+    main()
+  File "/home/user/projects/inventory/stock_manager.py", line 17, in main
+    print_inventory_report(items)
+  File "/home/user/projects/inventory/stock_manager.py", line 10, in print_inventory_report
+    for i in range(len(items)):
+      print(f"Item {i+1}: {items[i]['name']} - Quantity: {items[i]['quantity']}")
+IndexError: list index out of range
+
+# stock_manager.py
+def print_inventory_report(items):
+    print("===== INVENTORY REPORT =====")
+    # Error occurs in this loop - classic off-by-one error
+    for i in range(len(items) + 1):  # Notice the + 1 here
+        print(f"Item {i+1}: {items[i]['name']} - Quantity: {items[i]['quantity']}")
+    print("============================")
+
+def main():
+    items = [
+        {"name": "Laptop", "quantity": 15},
+        {"name": "Mouse", "quantity": 30},
+        {"name": "Keyboard", "quantity": 25}
+    ]
+    print_inventory_report(items)
+
+if __name__ == "__main__":
+    main()
+
+
+AI Response:
+## Error Analysis: IndexError
+
+**Error Description:**
+An `IndexError` occurs in Python when your code attempts to access an index position in a list (or other sequence) that does not exist. Because Python lists are zero-indexed, a list with three items only validly contains indices `0`, `1`, and `2`. Trying to access index `3` or higher triggers this error.
+
+**Root Cause:**
+An off-by-one error inside the `print_inventory_report` loop:
+
+```python
+for i in range(len(items) + 1):
+
+```
+
+By adding `+ 1` to `len(items)`, the `range()` function generated an extra iteration step that targeted an index equal to the total length of the list, which falls outside the valid bounds.
+
+**Solution:**
+Remove the `+ 1` from the loop range so it matches the actual bounds of the list:
+
+```python
+def print_inventory_report(items):
+    print("===== INVENTORY REPORT =====")
+    # Fixed: Removed the '+ 1' to prevent going out of range
+    for i in range(len(items)):  
+        print(f"Item {i+1}: {items[i]['name']} - Quantity: {items[i]['quantity']}")
+    print("============================")
+
+```
+
+**Learning Points:**
+
+* **Zero-based Indexing:** Always remember that the last valid element of a Python sequence is at index `len(sequence) - 1`.
+* **Be Cautious with Manual Bounds:** Modifying `len()` inside a loop condition often leads to off-by-one boundary bugs.
+* **Embrace Pythonic Iteration:** Whenever you need both the item and its number/index, use `enumerate()` rather than manually tracking indices with `range(len())`:
+```python
+for i, item in enumerate(items):
+    print(f"Item {i+1}: {item['name']} - Quantity: {item['quantity']}")
+
+```
+
+Exercise: Performance Optimization Challenge
+
+Identifying Performance Bottlenecks
+# inventory_analysis.py
+def find_product_combinations(products, target_price, price_margin=10):
+    """
+    Find all pairs of products where the combined price is within
+    the target_price ± price_margin range.
+
+    Args:
+        products: List of dictionaries with 'id', 'name', and 'price' keys
+        target_price: The ideal combined price
+        price_margin: Acceptable deviation from the target price
+
+    Returns:
+        List of dictionaries with product pairs and their combined price
+    """
+    results = []
+
+    # For each possible pair of products
+    for i in range(len(products)):
+        for j in range(len(products)):
+            # Skip comparing a product with itself
+            if i != j:
+                product1 = products[i]
+                product2 = products[j]
+
+                # Calculate combined price
+                combined_price = product1['price'] + product2['price']
+
+                # Check if the combined price is within the target range
+                if (target_price - price_margin) <= combined_price <= (target_price + price_margin):
+                    # Avoid duplicates like (product1, product2) and (product2, product1)
+                    if not any(r['product1']['id'] == product2['id'] and
+                               r['product2']['id'] == product1['id'] for r in results):
+
+                        pair = {
+                            'product1': product1,
+                            'product2': product2,
+                            'combined_price': combined_price,
+                            'price_difference': abs(target_price - combined_price)
+                        }
+                        results.append(pair)
+
+    # Sort by price difference from target
+    results.sort(key=lambda x: x['price_difference'])
+    return results
+
+# Example usage
+if __name__ == "__main__":
+    import time
+    import random
+
+    # Generate a large list of products
+    product_list = []
+    for i in range(5000):
+        product_list.append({
+            'id': i,
+            'name': f'Product {i}',
+            'price': random.randint(5, 500)
+        })
+
+    # Measure execution time
+    start_time = time.time()
+    combinations = find_product_combinations(product_list, 500, 50)
+    end_time = time.time()
+
+    print(f"Found {len(combinations)} product combinations")
+    print(f"Execution time: {end_time - start_time:.2f} seconds")
+
+    AI Response
+    def find_product_combinations(products, target_price, price_margin=10):
+
+    """
+
+    Find all pairs of products where the combined price is within
+
+    the target_price ± price_margin range.
+
+
+
+    Args:
+
+        products: List of dictionaries with 'id', 'name', and 'price' keys
+
+        target_price: The ideal combined price
+
+        price_margin: Acceptable deviation from the target price
+
+
+
+    Returns:
+
+        List of dictionaries with product pairs and their combined price
+
+    """
+
+    results = []
+
+
+
+    # For each possible pair of products
+
+    for i in range(len(products)):
+
+        for j in range(len(products)):
+
+            # Skip comparing a product with itself
+
+            if i != j:
+
+                product1 = products[i]
+
+                product2 = products[j]
+
+
+
+                # Calculate combined price
+
+                combined_price = product1['price'] + product2['price']
+
+
+
+                # Check if the combined price is within the target range
+
+                if (target_price - price_margin) <= combined_price <= (target_price + price_margin):
+
+                    # Avoid duplicates like (product1, product2) and (product2, product1)
+
+                    if not any(r['product1']['id'] == product2['id'] and
+
+                               r['product2']['id'] == product1['id'] for r in results):
+
+
+
+                        pair = {
+
+                            'product1': product1,
+
+                            'product2': product2,
+
+                            'combined_price': combined_price,
+
+                            'price_difference': abs(target_price - combined_price)
+
+                        }
+
+                        results.append(pair)
+
+
+
+    # Sort by price difference from target
+
+    results.sort(key=lambda x: x['price_difference'])
+
+    return results
+
+
+
+# Example usage
+
+if __name__ == "__main__":
+
+    import time
+
+    import random
+
+
+
+    # Generate a large list of products
+
+    product_list = []
+
+    for i in range(5000):
+
+        product_list.append({
+
+            'id': i,
+
+            'name': f'Product {i}',
+
+            'price': random.randint(5, 500)
+
+        })
+
+
+
+    # Measure execution time
+
+    start_time = time.time()
+
+    combinations = find_product_combinations(product_list, 500, 50)
+
+    end_time = time.time()
+
+
+
+    print(f"Found {len(combinations)} product combinations")
+
+    print(f"Execution time: {end_time - start_time:.2f} seconds")
+
+Performance Bottlenecks in inventory_analysis.py
+The provided code has a time complexity of O(N 
+2
+ ) or worse, which causes significant slowdowns as the product list grows (e.g., 5,000 products result in 25 million iterations).
+
+Key Bottlenecks Identified
+O(N 
+2
+ ) Nested Loops: The double for loop iterates over every possible combination, including self-comparisons and reverse pairs. For N=5,000, this executes 25,000,000 times.
+
+Redundant Duplicate Checks inside the Loop: The any() function searches through the results list on every matching pair. Since results grows with successful matches, this turns into an O(N 
+2
+ ⋅K) operation (where K is the number of valid matches).
+
+Inefficient Pair Generation: Comparing all indices from 0 to N checks every pair twice (once as (A, B) and once as (B, A)), requiring expensive post-hoc deduplication rather than avoiding duplicate pairs from the start.
+
+How to Optimize
+Use itertools.combinations: Instead of nested loops, use Python's built-in generator to only look at unique pairs (i, j) where i < j. This cuts the number of iterations in half instantly.
+
+Eliminate the any() search: By using itertools.combinations, you completely remove the need to check for reverse duplicates (product1 vs product2).
+
+Exercise: AI Solution Verification Challenge
+corrected code
+// Corrected sorting function
+function mergeSort(arr) {
+  if (arr.length <= 1) return arr;
+
+  const mid = Math.floor(arr.length / 2);
+  const left = mergeSort(arr.slice(0, mid));
+  const right = mergeSort(arr.slice(mid));
+
+  return merge(left, right);
+}
+
+function merge(left, right) {
+  let result = [];
+  let i = 0;
+  let j = 0;
+
+  // Merge elements in sorted order
+  while (i < left.length && j < right.length) {
+    if (left[i] < right[j]) {
+      result.push(left[i]);
+      i++;
+    } else {
+      result.push(right[j]);
+      j++;
+    }
+  }
+
+  // Collect remaining elements from left array (Fixed: incrementing i)
+  while (i < left.length) {
+    result.push(left[i]);
+    i++; 
+  }
+
+  // Collect remaining elements from right array
+  while (j < right.length) {
+    result.push(right[j]);
+    j++;
+  }
+
+  return result;
+}

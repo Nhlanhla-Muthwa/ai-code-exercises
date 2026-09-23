@@ -1,57 +1,52 @@
-# inventory_analysis.py
-def find_product_combinations(products, target_price, price_margin=10):
-    """
-    Find all pairs of products where the combined price is within
-    the target_price ± price_margin range.
+import time
+import random
+from bisect import bisect_left, bisect_right
 
-    Args:
-        products: List of dictionaries with 'id', 'name', and 'price' keys
-        target_price: The ideal combined price
-        price_margin: Acceptable deviation from the target price
-
-    Returns:
-        List of dictionaries with product pairs and their combined price
+def find_product_combinations_fast(products, target_price, price_margin=10):
     """
+    Find all pairs of products within the target price range in O(N log N) time.
+    """
+    # Sort products by price to enable binary search
+    sorted_products = sorted(products, key=lambda x: x['price'])
+    prices = [p['price'] for p in sorted_products]
+    
     results = []
+    n = len(sorted_products)
+    
+    min_combined = target_price - price_margin
+    max_combined = target_price + price_margin
 
-    # For each possible pair of products
-    for i in range(len(products)):
-        if i % 100 == 0:
-            print(f"Processing product {i+1} of {len(products)}")
-        for j in range(len(products)):
-            # Skip comparing a product with itself
-            if i != j:
-                product1 = products[i]
-                product2 = products[j]
+    for i in range(n):
+        product1 = sorted_products[i]
+        p1_price = product1['price']
+        
+        # Calculate the required price range for product2
+        target_min_p2 = min_combined - p1_price
+        target_max_p2 = max_combined - p1_price
+        
+        # Use binary search to find the slice of valid prices in O(log N) time
+        # We start search from i + 1 to avoid self-pairing and duplicates (A, B vs B, A)
+        left_idx = bisect_left(prices, target_min_p2, lo=i + 1)
+        right_idx = bisect_right(prices, target_max_p2, lo=i + 1)
+        
+        for j in range(left_idx, right_idx):
+            product2 = sorted_products[j]
+            combined_price = p1_price + product2['price']
+            
+            results.append({
+                'product1': product1,
+                'product2': product2,
+                'combined_price': combined_price,
+                'price_difference': abs(target_price - combined_price)
+            })
 
-                # Calculate combined price
-                combined_price = product1['price'] + product2['price']
-
-                # Check if the combined price is within the target range
-                if (target_price - price_margin) <= combined_price <= (target_price + price_margin):
-                    # Avoid duplicates like (product1, product2) and (product2, product1)
-                    if not any(r['product1']['id'] == product2['id'] and
-                               r['product2']['id'] == product1['id'] for r in results):
-
-                        pair = {
-                            'product1': product1,
-                            'product2': product2,
-                            'combined_price': combined_price,
-                            'price_difference': abs(target_price - combined_price)
-                        }
-                        results.append(pair)
-
-    # Sort by price difference from target
+    # Sort results by closeness to the target price
     results.sort(key=lambda x: x['price_difference'])
     return results
 
 # Example usage
 if __name__ == "__main__":
-    import time
-    import random
-
-    # Generate a large list of products
-    print("Generating Product List")
+    print("Generating Product List...")
     product_list = []
     for i in range(5000):
         product_list.append({
@@ -60,11 +55,10 @@ if __name__ == "__main__":
             'price': random.randint(5, 500)
         })
 
-    # Measure execution time
-    print(f"Finding product combinations for {len(product_list)} products")
+    print(f"Finding product combinations for {len(product_list)} products...")
     start_time = time.time()
-    combinations = find_product_combinations(product_list, 500, 50)
+    combinations = find_product_combinations_fast(product_list, 500, 50)
     end_time = time.time()
 
     print(f"Found {len(combinations)} product combinations")
-    print(f"Execution time: {end_time - start_time:.2f} seconds")
+    print(f"Execution time: {end_time - start_time:.4f} seconds")
