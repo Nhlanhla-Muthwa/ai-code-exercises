@@ -1,0 +1,84 @@
+ AI Prompt "Deciphering Complex Functions and Algorithms"
+
+Algorithm 1: Task Priority Sorting Algorithm
+Python Implementation code
+def calculate_task_score(task):
+    """Calculate a priority score for a task based on multiple factors."""
+    # Base priority weights
+    priority_weights = {
+        TaskPriority.LOW: 1,
+        TaskPriority.MEDIUM: 2,
+        TaskPriority.HIGH: 4,
+        TaskPriority.URGENT: 6
+    }
+
+    # Calculate base score from priority
+    score = priority_weights.get(task.priority, 0) * 10
+
+    # Add due date factor (higher score for tasks due sooner)
+    if task.due_date:
+        days_until_due = (task.due_date - datetime.now()).days
+        if days_until_due < 0:  # Overdue tasks
+            score += 35
+        elif days_until_due == 0:  # Due today
+            score += 20
+        elif days_until_due <= 2:  # Due in next 2 days
+            score += 15
+        elif days_until_due <= 7:  # Due in next week
+            score += 10
+
+    # Reduce score for tasks that are completed or in review
+    if task.status == TaskStatus.DONE:
+        score -= 50
+    elif task.status == TaskStatus.REVIEW:
+        score -= 15
+
+    # Boost score for tasks with certain tags
+    if any(tag in ["blocker", "critical", "urgent"] for tag in task.tags):
+        score += 8
+
+    # Boost score for recently updated tasks
+    days_since_update = (datetime.now() - task.updated_at).days
+    if days_since_update < 1:
+        score += 5
+
+    return score
+
+def sort_tasks_by_importance(tasks):
+    """Sort tasks by calculated importance score (highest first)."""
+    # Calculate scores once and sort by the score
+    task_scores = [(calculate_task_score(task), task) for task in tasks]
+    sorted_tasks = [task for _, task in sorted(task_scores, reverse=True)]
+    return sorted_tasks
+
+def get_top_priority_tasks(tasks, limit=5):
+    """Return the top N priority tasks."""
+    sorted_tasks = sort_tasks_by_importance(tasks)
+    return sorted_tasks[:limit]
+
+
+ AI Response:
+
+ This Python module provides a robust mechanism for automatically scoring, ranking, and filtering tasks based on a mix of priority weights, deadlines, status, and recent activity.
+
+---
+
+### Breakdown of the Scoring Factors
+
+The core logic lives in `calculate_task_score(task)`, which translates various attributes into a single numerical priority score:
+
+* **Base Priority:** Multiplies the task's priority level by 10 (Urgent yields 60, High 40, Medium 20, and Low 10).
+* **Due Date Urgency:** Grants bonus points for approaching or past deadlines, ranging from +10 for tasks due within a week up to +35 for overdue tasks.
+* **Status Adjustments:** Subtly or severely deprioritizes tasks that are already in review (-15) or marked as done (-50).
+* **Metadata & Activity Boosts:** Rewards items tagged as `"blocker"`, `"critical"`, or `"urgent"` with +8 points, and adds a +5 fresh-update bonus for tasks modified within the last day.
+
+---
+
+### Sorting and Selection Mechanics
+
+The remaining two functions handle organizing and extracting the final output:
+
+* **Efficient Sorting (`sort_tasks_by_importance`):** Pairs each task with its calculated score upfront to avoid redundant calculations, then sorts the list in descending order (`reverse=True`) so the highest-scoring items surface first.
+* **Top Task Limiting (`get_top_priority_tasks`):** Calls the sorting function and slices the array to return a clean, concise list of top-tier tasks (defaulting to the top 5).
+
+---
